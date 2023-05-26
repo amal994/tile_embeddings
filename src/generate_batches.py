@@ -10,21 +10,37 @@ from keras.preprocessing import sequence, image
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import train_test_split
 from utils.data_loading.load_data import get_tile_data
+from imblearn.over_sampling import RandomOverSampler
 
 game_data_path="../data/game_data.csv"
 train_data_path="../data/train_data.csv"
 test_data_path="../data/test_data.csv"
 
-if __name__ == "__main__": 
-    
-    data=pd.read_csv(game_data_path)
-    train_data=pd.read_csv(train_data_path)
-    test_data=pd.read_csv(test_data_path)
-    
+if __name__ == "__main__":
+
+    data = pd.read_csv(game_data_path)
+    train_data = pd.read_csv(train_data_path)
+    test_data = pd.read_csv(test_data_path)
+
+    # START: Balance train_data:
+    ros = RandomOverSampler(random_state=42, sampling_strategy={'DB': 1000,
+                                                                'DG': 1000,
+                                                                'DP': 1000,
+                                                                'DR': 1000,
+                                                                'DY': 1000,
+                                                                'GG': 1000,
+                                                                'LB': 1000,
+                                                                'LG': 1000,
+                                                                'LP': 1000,
+                                                                'LR': 1000,
+                                                                'LY': 1000,
+                                                                'VR': 1000})
+    train_data, _ = ros.fit_resample(train_data, train_data['centre_tile'])
+    # END: Balance train-data.
     data['features'] = data.features.apply(lambda x: literal_eval(str(x)))
     train_data['features'] = train_data.features.apply(lambda x: literal_eval(str(x)))
     test_data['features'] = test_data.features.apply(lambda x: literal_eval(str(x)))
-    
+
     # Building feature dictionary consisting of all the features seen across games
     print("Building feature Dictionary..")
     mlb = MultiLabelBinarizer()
@@ -57,7 +73,7 @@ if __name__ == "__main__":
     output_image_batch = []
     for i in range(len(train_image_batch)):
         current_image = train_image_batch[i]
-        current_image_centre = train_image_batch[i][16 : 16 + 16, 16 : 16 + 16, :]
+        current_image_centre = train_image_batch[i][16: 16 + 16, 16: 16 + 16, :]
         output_image_batch.append(current_image_centre)
     output_image_batch = np.array(output_image_batch)
     output_text_batch = []
@@ -70,7 +86,7 @@ if __name__ == "__main__":
     print("Train Text batch shape", train_text_batch.shape)
     print("Output Image batch shape", output_image_batch.shape)
     print("Output Text batch shape", output_text_batch.shape)
-    
+
     print("Train Batches Stored")
 
     # Build Input Output Test Batches
@@ -84,7 +100,7 @@ if __name__ == "__main__":
     test_image_batch = np.array(test_image_batch)
     test_text_batch = []
     for i in range(len(test_data["features"])):
-        text_ = mlb.transform(test_data["features"][i : i + 1])
+        text_ = mlb.transform(test_data["features"][i: i + 1])
         test_text_batch.append(text_)
     test_text_batch = np.array(test_text_batch).reshape(test_data.shape[0], num_features)
     print("\n\nTesting Data Ready")

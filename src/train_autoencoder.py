@@ -1,103 +1,93 @@
-import os
-import glob
-import pandas as pd
+import pickle
+from ast import literal_eval
+
 import numpy as np
-import json
-from sklearn.utils import shuffle
-from keras.preprocessing import sequence, image
-from keras.preprocessing.image import array_to_img, save_img, img_to_array
-from sklearn.preprocessing import MultiLabelBinarizer
+import pandas as pd
+import tensorflow as tf
+from keras import backend as K
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import (
     Flatten,
     Dense,
     Input,
-    Activation,
     BatchNormalization,
     Conv2D,
-    MaxPool2D,
-    Dropout,
-    UpSampling2D,
-    Lambda,
 )
-import pickle
-from keras.layers import ReLU, Reshape, Conv2DTranspose, Concatenate, Multiply
+from keras.layers import ReLU, Reshape, Conv2DTranspose, Concatenate
 from keras.models import Model
-from tensorflow.keras.optimizers import Adam
-from keras.losses import binary_crossentropy, categorical_crossentropy
-from keras import backend as K
-from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras import metrics
-from collections import Counter
-from keras import metrics
-from utils.data_loading.load_data import get_tile_data
+from keras.optimizers.legacy import Adam
 from sklearn.feature_extraction.text import TfidfVectorizer
-from ast import literal_eval
-import tensorflow as tf
 
 data_directory = "../data/context_data/"
 json_directory = "../data/json_files_trimmed_features/"
-game_data_path="../data/game_data.csv"
-train_data_path="../data/train_data.csv"
-test_data_path="../data/test_data.csv"
+game_data_path = "../data/game_data.csv"
+train_data_path = "../data/train_data.csv"
+test_data_path = "../data/test_data.csv"
 
-EPOCHS=10
-BATCH_SIZE=25
-LATENT_DIM=256
+EPOCHS = 10
+BATCH_SIZE = 25
+LATENT_DIM = 256
+AFFORDANCES = 12
+
 
 def loss_func_image(y_true, y_pred):
     # tile sprite loss
-    r_loss=K.mean(K.square(y_true - y_pred), axis=[1,2,3])
-    loss  =  r_loss
+    r_loss = K.mean(K.square(y_true - y_pred), axis=[1, 2, 3])
+    loss = r_loss
     return loss
-    
-def loss_func_text(y_true,y_pred):
+
+
+def loss_func_text(y_true, y_pred):
     # multilabel text weighted bce
     y_true = K.cast(y_true, 'float32')
     y_pred = K.cast(y_pred, 'float32')
-    bce_array=-(y_true*K.log(y_pred)+(1-y_true)*K.log(1-y_pred))
-    weighted_array=bce_array*tensor_from_list
-    bce_sum=K.sum(weighted_array,axis=1)
-    loss=bce_sum/13.0
+    bce_array = -(y_true * K.log(y_pred) + (1 - y_true) * K.log(1 - y_pred))
+    weighted_array = bce_array * tensor_from_list
+    bce_sum = K.sum(weighted_array, axis=1)
+    loss = bce_sum / (AFFORDANCES * 1.0)
     return loss
 
-def check_nonzero(y_true,y_pred):
+
+def check_nonzero(y_true, y_pred):
     """
     Custom metric
     Returns sum of all embeddings
     """
-    return(K.sum(K.cast(y_pred > 0.4, 'int32')))
+    return (K.sum(K.cast(y_pred > 0.4, 'int32')))
+
 
 def get_pickle_file(path):
-    with open(path,"rb") as handle:
+    with open(path, "rb") as handle:
         return pickle.load(handle)
-    
+
+
 if __name__ == "__main__":
 
     # data loading
-    data=pd.read_csv(game_data_path)
-    train_data=pd.read_csv(train_data_path)
-    test_data=pd.read_csv(test_data_path)
+    data = pd.read_csv(game_data_path)
+    train_data = pd.read_csv(train_data_path)
+    test_data = pd.read_csv(test_data_path)
     data['features'] = data.features.apply(lambda x: literal_eval(str(x)))
     train_data['features'] = train_data.features.apply(lambda x: literal_eval(str(x)))
     test_data['features'] = test_data.features.apply(lambda x: literal_eval(str(x)))
 
     # loading multi-label binarizer
-    mlb=get_pickle_file("../model/model_tokenizer.pickle")
+    mlb = get_pickle_file("../model/model_tokenizer.pickle")
     print("Feature Dictionary Loaded")
     total_features = len(mlb.classes_)
     print("The feature dictionary has size", total_features)
     print("Features", mlb.classes_)
 
     # loading the batches
-    # training 
-    train_image_batch=get_pickle_file("../data/train_image_batch.pickle")
-    train_text_batch=get_pickle_file("../data/train_text_batch.pickle")
-    output_image_batch=get_pickle_file("../data/output_image_batch.pickle")
-    output_text_batch=get_pickle_file("../data/output_text_batch.pickle")
+    # training
+    train_image_batch = get_pickle_file("../data/train_image_batch.pickle")
+    train_text_batch = get_pickle_file("../data/train_text_batch.pickle")
+    output_image_batch = get_pickle_file("../data/output_image_batch.pickle")
+    output_text_batch = get_pickle_file("../data/output_text_batch.pickle")
 
-    #testing
-    test_image_batch=get_pickle_file("../data/test_image_batch.pickle")
-    test_text_batch=get_pickle_file("../data/test_text_batch.pickle")
+    # testing
+    test_image_batch = get_pickle_file("../data/test_image_batch.pickle")
+    test_text_batch = get_pickle_file("../data/test_text_batch.pickle")
 
     print("\Training Testing Batches loaded")
     print("Train Image batch shape", train_image_batch.shape)
@@ -105,9 +95,9 @@ if __name__ == "__main__":
     print("Train Output Image batch shape", output_image_batch.shape)
     print("Train Output Text batch shape", output_text_batch.shape)
     print("Test Image batch shape", test_image_batch.shape)
-    print("Test Text batch shape", test_text_batch.shape)   
+    print("Test Text batch shape", test_text_batch.shape)
 
-    #initialise the TF-IDF vectorizer to counter imbalanced dataset
+    # initialise the TF-IDF vectorizer to counter imbalanced dataset
     vectorizer = TfidfVectorizer(stop_words=None)
     train_data_copy = train_data
     train_data_copy["features"] = train_data_copy.features.apply(lambda x: str(x))
@@ -128,7 +118,7 @@ if __name__ == "__main__":
     tensor_from_list = K.cast(tensor_from_list, "float32")
     print("Weight Vector")
     print(weight_vector)
-    
+
     # model definition
     latent_dim = 128
     batch_size = 1
@@ -153,7 +143,7 @@ if __name__ == "__main__":
     image_flatten = Flatten(name="image_flatten_layer")(image_encoder_actv_layer3)
 
     # text encoder
-    text_encoder_input = Input(shape=(13,))
+    text_encoder_input = Input(shape=(AFFORDANCES,))
     text_encoder_dense_layer1 = Dense(32, activation="tanh", name="tencode_dense1")(
         text_encoder_input
     )
@@ -166,10 +156,9 @@ if __name__ == "__main__":
     image_text_concat = Concatenate(name="image_text_concatenation")(
         [image_flatten, text_encoder_dense_layer2]
     )
-    image_text_concat = Dense(256, activation="tanh", name="embedding_dense_1")(
+    image_text_concat = Dense(LATENT_DIM, activation="tanh", name="embedding_dense_1")(
         image_text_concat
     )
-
 
     # define encoder model
     encoding_model = Model(
@@ -202,7 +191,6 @@ if __name__ == "__main__":
         3, (3, 3), padding="same", name="image_output_layer"
     )(image_decoder_actv_layer2)
 
-
     # decoder for text
     text_decoder_dense_layer1 = Dense(16, activation="tanh", name="tdecode_dense1")(
         image_text_concat
@@ -213,7 +201,7 @@ if __name__ == "__main__":
     text_decoder_dense_layer2 = Dense(32, activation="tanh", name="tdecode_dense2")(
         text_reshape
     )
-    text_decoder_output = Dense(13, activation="sigmoid", name="text_output_layer")(
+    text_decoder_output = Dense(AFFORDANCES, activation="sigmoid", name="text_output_layer")(
         text_decoder_dense_layer2
     )
     # decoding_model=Model(inputs=[decoder_input],outputs=[image_decoder_output,text_decoder_output])
@@ -223,41 +211,50 @@ if __name__ == "__main__":
         [image_decoder_output, text_decoder_output],
     )
 
-    losses ={'image_output_layer':loss_func_image,
-              'text_output_layer':loss_func_text,
-    }
-    #tweak loss weights
-    lossWeights={'image_output_layer':0.1,
-              'text_output_layer':0.9  
-            }
+    losses = {'image_output_layer': loss_func_image,
+              'text_output_layer': loss_func_text,
+              }
+    # tweak loss weights
+    lossWeights = {'image_output_layer': 0.1,
+                   'text_output_layer': 0.9
+                   }
 
-
-    accuracy={
-        'image_output_layer':loss_func_image,
+    accuracy = {
+        'image_output_layer': loss_func_image,
         'text_output_layer': check_nonzero
     }
+    opt = Adam(learning_rate=0.0001)
 
     ae_sep_output.compile(
-        optimizer="adam", loss=losses, loss_weights=lossWeights, metrics=accuracy
+        optimizer=opt, loss=losses, loss_weights=lossWeights, metrics=accuracy
     )
 
     es = EarlyStopping(
         monitor="val_text_output_layer_loss", mode="min", verbose=1, patience=2
     )
 
+    mc = ModelCheckpoint(
+        '../model/autoencoder_model.{epoch:02d}-{val_loss:.2f}.h5',
+        monitor="val_text_output_layer_loss",  # Should we monitor image val loss instead?
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=True,
+        mode="min",
+        save_freq="epoch")
+
     ae_history = ae_sep_output.fit(
         [train_image_batch, train_text_batch],
         [output_image_batch, output_text_batch],
-        epochs=10,
-        batch_size=25,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=True,
         validation_split=0.2,
-        callbacks=[es],
+        callbacks=[es, mc],
     )
-    
+
     # build the inference model
 
-    decoder_input = Input(shape=(256,))
+    decoder_input = Input(shape=(LATENT_DIM,))
 
     d_dense = ae_sep_output.get_layer("image_dense")(decoder_input)
     d_reshape = ae_sep_output.get_layer("image_reshape")(d_dense)
@@ -275,7 +272,7 @@ if __name__ == "__main__":
     d_text_output = ae_sep_output.get_layer("text_output_layer")(t_dense2)
 
     decoder_model = Model(inputs=[decoder_input], outputs=[d_image_output, d_text_output])
-    
+
     # saving the entire architecture model
     model_json = ae_sep_output.to_json()
     with open("../model/autoencoder_model_test.json", "w") as json_file:

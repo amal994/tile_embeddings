@@ -86,7 +86,7 @@ def generate_unified_rep(current_game,loaded_game_data,game_image_dir, save_dir)
 
     idx2embed_map = {}
     idx2tile_map = {}
-
+    num_affordance = 12  # For minigrid we only have 12 affordances, change if needed.
     for idx in range(len(loaded_game_data)):
 
         image_path = loaded_game_data.loc[idx]["image_path"]
@@ -104,7 +104,7 @@ def generate_unified_rep(current_game,loaded_game_data,game_image_dir, save_dir)
         level_image_expanded = level_image_unroll(level_array_padded)
         print("Expanded level images ", level_image_expanded.shape)
 
-        mapped_text = np.zeros((level_image_expanded.shape[0], 13))
+        mapped_text = np.zeros((level_image_expanded.shape[0], num_affordance))
         encoded_level = encoding_model.predict([level_image_expanded, mapped_text])
         print("Encoding dimension", encoded_level.shape)
 

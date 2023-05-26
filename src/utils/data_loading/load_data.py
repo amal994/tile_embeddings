@@ -39,6 +39,8 @@ def get_tile_data(game_data_directory, json_directory, shuffle_data=True):
             sprite_mappings = json.load(fp)
 
         sprite_mappings = sprite_mappings["tiles"]
+        sprite_mappings['  '] = ["empty"]
+
         print("Json File Loaded")
 
         print("Reading Sprite Data From", game_context_sprites)
@@ -65,8 +67,8 @@ def get_tile_data(game_data_directory, json_directory, shuffle_data=True):
 
                 curr_centre = str(context.split("/")[-2])
 
-                #                 print("Centre Tile",curr_centre)
-                tile_data = tile_data.append(
+                #print("Centre Tile", curr_centre)
+                tile_data = tile_data._append(
                     {
                         "game_identifier": current_game,
                         "image_path": context_image_path,

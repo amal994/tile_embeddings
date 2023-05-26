@@ -28,8 +28,8 @@ def example_based_precision(y_true,y_pred):
     precision_num=np.sum(np.logical_and(y_true,y_pred),axis=1)
     precision_den=np.sum(y_pred,axis=1)
 
-    p_n=np.array(precision_num).astype(np.float)
-    p_d=np.array(precision_den).astype(np.float)
+    p_n=np.array(precision_num).astype(float)
+    p_d=np.array(precision_den).astype(float)
 
     avg_precision=np.nansum(p_n/p_d)/float(n)
     
@@ -42,8 +42,8 @@ def example_based_recall(y_true,y_pred):
     recall_num=np.sum(np.logical_and(y_true,y_pred),axis=1)
     recall_den=np.sum(y_true,axis=1)
 
-    p_n=np.array(recall_num).astype(np.float)
-    p_d=np.array(recall_den).astype(np.float)
+    p_n=np.array(recall_num).astype(float)
+    p_d=np.array(recall_den).astype(float)
 
     sum_recall=np.nansum(p_n/p_d)
     avg_recall=sum_recall/n
