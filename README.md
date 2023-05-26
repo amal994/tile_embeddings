@@ -163,10 +163,10 @@ python generate_batches.py
 ### 5. Evaluate the autoencoder.
 ```
 cd notebooks
-run the jupyeter notebook evaluate_autoencoder.ipynb
+run the jupyter notebook evaluate_autoencoder.ipynb
 ```
 ### 6. Generate embeddings of observations. 
 ```
 cd notebooks
-run the jupyeter notebook observations_to_embedding.ipynb
+run the jupyter notebook observations_to_embedding.ipynb
 ```
