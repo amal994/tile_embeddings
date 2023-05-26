@@ -137,3 +137,36 @@ The notebook *bubble_bobble_generation.ipynb* provides step-by-step instructions
 * Add more data! Training the autoencoder on more games and enriching the corpus 
 * Perform cool experiments with tile embedding, and cite us :)
 * Find bugs and help us make this repository better!
+
+# Tile Embeddings for Minigrid 
+## Installation:
+   Follow the same pipenv steps listed above from the original Repo to install dependancies and activate environment. 
+## Usage:
+### 1. Extract dataset from Minigrid.
+```
+cd src
+python generate_tiles_from_minigrids.py
+```
+### 2. Load data and prepare splits. 
+```
+python load_data.py                    
+```
+### 3. Generate Batches and balance the dataset.
+```
+python generate_batches.py 
+```
+### 4. Train the autoencoder.
+The training potentially can be improved to overcome the error gradients. Currently it cannot last more than 10 epochs before exploding into Nans. :(. But it learns enough to capture all minigrid objects with only some noise. 
+```
+python generate_batches.py 
+```
+### 5. Evaluate the autoencoder.
+```
+cd notebooks
+run the jupyeter notebook evaluate_autoencoder.ipynb
+```
+### 6. Generate embeddings of observations. 
+```
+cd notebooks
+run the jupyeter notebook observations_to_embedding.ipynb
+```
