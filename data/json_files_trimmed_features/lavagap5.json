@@ -1,0 +1,1 @@
+{"tiles": {"WG": ["wall"], ">>": ["agent"], "VR": ["lava", "can_overlap", "can_see_behind"], "GG": ["goal", "can_overlap", "can_see_behind"]}}

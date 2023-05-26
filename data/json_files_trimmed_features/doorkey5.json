@@ -1,0 +1,1 @@
+{"tiles": {"WG": ["wall"], "LY": ["door", "is_locked"], "VV": ["agent"], "KY": ["key", "can_pickup", "can_see_behind"], "GG": ["goal", "can_overlap", "can_see_behind"], "<<": ["agent"], "^^": ["agent"], ">>": ["agent"]}}
